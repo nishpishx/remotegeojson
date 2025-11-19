@@ -1,15 +1,13 @@
-# fake_gps_stream_server.py
-import math
+# fake_gps_straight_line.py
 import time
 import threading
-import random
 from flask import Flask, jsonify
 
 app = Flask(__name__)
 
 # Base location
 BASE_LAT = 37.8591
-BASE_LON = 122.4853
+BASE_LON = -122.4853
 
 # Store all published points
 all_points = []
@@ -17,21 +15,20 @@ all_points = []
 # Lock for thread safety
 lock = threading.Lock()
 
-# Publish rate (points per second)
-PUBLISH_RATE_HZ = 5  # 5 points/sec
-PUBLISH_INTERVAL = 1.0 / PUBLISH_RATE_HZ
+# Publish 1 point per second, straight line
+PUBLISH_INTERVAL = 1.0  # seconds
+STEP = 0.0005  # increment in longitude per point
 
 start_time = time.time()
+current_lon = BASE_LON
 
 def publish_points():
-    """Background thread to generate points continuously"""
+    """Background thread to generate points in a straight line"""
+    global current_lon
     while True:
-        t = time.time() - start_time
-
-        # Simulate circular motion + small random offset
-        latitude  = BASE_LAT + 0.001 * math.sin(t / 10.0) + random.uniform(-0.0005, 0.0005)
-        longitude = BASE_LON + 0.001 * math.cos(t / 10.0) + random.uniform(-0.0005, 0.0005)
-        altitude  = 5.0 + 0.1 * math.sin(t / 5.0)
+        latitude = BASE_LAT
+        longitude = current_lon
+        altitude = 5.0  # constant
 
         feature = {
             "type": "Feature",
@@ -46,10 +43,11 @@ def publish_points():
 
         with lock:
             all_points.append(feature)
-            # Optional: limit max points for performance
+            # Optional: keep last 1000 points
             if len(all_points) > 1000:
                 all_points.pop(0)
 
+        current_lon += STEP  # move east in a straight line
         time.sleep(PUBLISH_INTERVAL)
 
 # Start background publishing thread
