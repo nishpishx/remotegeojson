@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Live Seed Map</title>
+<title>Live Seed Stream</title>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.js"></script>
@@ -16,6 +16,7 @@ body { margin: 0; padding: 0; }
 
 <script>
 mapboxgl.accessToken = 'pk.eyJ1IjoibmlzaGF3YWx2ZWthciIsImEiOiJjbWk2ZDIzcHAwOHpjMm5xMzBoZnJqczFhIn0.yMVQVXT_07pyiff_ufya8Q';
+
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11',
@@ -23,57 +24,67 @@ const map = new mapboxgl.Map({
     center: [0,0]
 });
 
+// Global array to store all points
+let allPoints = [];
+
 map.on('load', () => {
 
-    // Add the source for the GeoJSON
+    // Add a GeoJSON source
     map.addSource('seeds', {
         type: 'geojson',
         data: {
             type: 'FeatureCollection',
-            features: []
+            features: allPoints
         }
     });
 
-    // Add a layer to show seeds as green circles
+    // Add a circle layer for the points
     map.addLayer({
         id: 'seeds-layer',
         type: 'circle',
         source: 'seeds',
         paint: {
-            'circle-radius': 6,
+            'circle-radius': 5,
             'circle-color': '#28a745',
             'circle-stroke-width': 1,
             'circle-stroke-color': '#ffffff'
         }
     });
 
-    // Initial fetch and interval updates
-    updateGeoJSON();
-    setInterval(updateGeoJSON, 2000);
-
-    async function updateGeoJSON() {
-        try {
-            const response = await fetch('https://seedplanterozzy.com/seeds.geojson');
-            const geojson = await response.json();
-
-            if (!geojson.features || geojson.features.length === 0) {
-                console.log("No features in GeoJSON");
-                return;
-            }
-
-            // Update the map source
-            map.getSource('seeds').setData(geojson);
-
-            // Fly to first feature
-            const [lon, lat] = geojson.features[0].geometry.coordinates;
-            map.flyTo({ center: [lon, lat], speed: 0.5 });
-
-        } catch (err) {
-            console.error('Error fetching GeoJSON:', err);
-        }
-    }
+    // Start fetching new points
+    setInterval(fetchNewPoints, 1000); // fetch every 1 second
 });
-</script>
 
+// Fetch new GeoJSON and add points to allPoints
+async function fetchNewPoints() {
+    try {
+        const response = await fetch('https://seedplanterozzy.com/seeds.geojson');
+        const geojson = await response.json();
+
+        if (!geojson.features || geojson.features.length === 0) return;
+
+        // Append new features
+        allPoints.push(...geojson.features);
+
+        // Optional: limit array to last 500 points
+        if (allPoints.length > 500) {
+            allPoints = allPoints.slice(allPoints.length - 500);
+        }
+
+        // Update the map source with all points
+        map.getSource('seeds').setData({
+            type: 'FeatureCollection',
+            features: allPoints
+        });
+
+        // Fly to the latest point
+        const [lon, lat] = geojson.features[geojson.features.length-1].geometry.coordinates;
+        map.flyTo({ center: [lon, lat], speed: 0.5 });
+
+    } catch (err) {
+        console.error('Error fetching GeoJSON:', err);
+    }
+}
+</script>
 </body>
 </html>
