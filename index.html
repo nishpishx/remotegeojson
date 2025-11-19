@@ -56,12 +56,17 @@ body { margin: 0; padding: 0; }
             async function getLocation(updateSource) {
                 // Make a GET request to the API and return the location of the ISS.
                 try {
-                    const response = await fetch(
-                        'https://api.wheretheiss.at/v1/satellites/25544',
-                        { method: 'GET' }
-                    );
-                    const { latitude, longitude } = await response.json();
-                    // Fly the map to the location.
+                    const response = await fetch('https://seedplanterozzy.com/seeds.geojson');
+                    const geojson = await response.json();
+
+                    // Check if features exist
+                    if (!geojson.features || geojson.features.length === 0) {
+                        console.log("No features in GeoJSON");
+                    return;
+                    }
+
+                    // Update the Mapbox source
+                    map.getSource('live-data').setData(geojson);
                     map.flyTo({
                         center: [longitude, latitude],
                         speed: 0.5
