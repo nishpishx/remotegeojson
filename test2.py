@@ -29,8 +29,8 @@ def publish_points():
         t = time.time() - start_time
 
         # Simulate circular motion + small random offset
-        latitude  = BASE_LAT + 0.0001 * math.sin(t / 10.0) + random.uniform(-0.00005, 0.00005)
-        longitude = BASE_LON + 0.0001 * math.cos(t / 10.0) + random.uniform(-0.00005, 0.00005)
+        latitude  = BASE_LAT + 0.001 * math.sin(t / 10.0) + random.uniform(-0.0005, 0.0005)
+        longitude = BASE_LON + 0.001 * math.cos(t / 10.0) + random.uniform(-0.0005, 0.0005)
         altitude  = 5.0 + 0.1 * math.sin(t / 5.0)
 
         feature = {
