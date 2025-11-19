@@ -55,7 +55,7 @@ def publish_points():
 # Start background publishing thread
 threading.Thread(target=publish_points, daemon=True).start()
 
-@app.route('/gps.geojson')
+@app.route('/seeds.geojson')
 def get_gps():
     """Return all points accumulated so far"""
     with lock:
