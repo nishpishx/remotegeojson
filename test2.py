@@ -13,7 +13,7 @@ NUM_POINTS = 50
 # Initialize random offsets for each point
 points_offsets = [(random.uniform(-0.01, 0.01), random.uniform(-0.01, 0.01)) for _ in range(NUM_POINTS)]
 
-@app.route('/gps.geojson')
+@app.route('/seeds.geojson')
 def get_gps():
     t = time.time() - start_time
     features = []
