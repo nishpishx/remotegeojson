@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Base location
 BASE_LAT = 37.8591
-BASE_LON = -122.4853
+BASE_LON = -122.4753
 
 # Store all published points
 all_points = []
