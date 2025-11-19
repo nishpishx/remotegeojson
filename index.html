@@ -28,18 +28,18 @@ body { margin: 0; padding: 0; }
             if (error) throw error;
 
             // Add the image to the map style.
-            map.addImage('iss', image);
+            map.addImage('live-data', image);
 
             // Get the initial location of the International Space Station (ISS).
             const geojson = await getLocation();
             // Add the ISS location as a source.
-            map.addSource('iss', {
+            map.addSource('live-data', {
                 type: 'geojson',
                 data: geojson
             });
             // Add the rocket symbol layer to the map.
             map.addLayer({
-                'id': 'iss',
+                'id': 'live-data',
                 'type': 'symbol',
                 'source': 'iss',
                 'layout': {
@@ -50,7 +50,7 @@ body { margin: 0; padding: 0; }
             // Update the source from the API every 2 seconds.
             const updateSource = setInterval(async () => {
                 const geojson = await getLocation(updateSource);
-                map.getSource('iss').setData(geojson);
+                map.getSource('live-data').setData(geojson);
             }, 2000);
 
             async function getLocation(updateSource) {
