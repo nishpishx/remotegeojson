@@ -63,6 +63,8 @@ body { margin: 0; padding: 0; }
 </div>
 
 <script>
+let mapReady = false;
+
 // Initialize map
 mapboxgl.accessToken = 'pk.eyJ1IjoibmlzaGF3YWx2ZWthciIsImEiOiJjbWk2ZDIzcHAwOHpjMm5xMzBoZnJqczFhIn0.yMVQVXT_07pyiff_ufya8Q';
 const map = new mapboxgl.Map({
@@ -73,7 +75,7 @@ const map = new mapboxgl.Map({
 });
 
 map.on('load', () => {
-
+    mapReady = true;
     // Seed source
     map.addSource('seeds', {
         type: 'geojson',
@@ -91,6 +93,29 @@ map.on('load', () => {
         paint: {
             'circle-radius': 6,
             'circle-color': '#28a745',
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#ffffff'
+        }
+    });
+
+    map.addSource('mission', {
+        type: 'geojson',
+        data: {
+            type: 'FeatureCollection',
+            features: []
+        }
+    });
+
+// ------------------------------
+// Mission layer (shows planned seeds in red)
+// ------------------------------
+    map.addLayer({
+        id: 'mission-layer',
+        type: 'circle',
+        source: 'mission',
+        paint: {
+            'circle-radius': 6,
+            'circle-color': '#ff0000',
             'circle-stroke-width': 1,
             'circle-stroke-color': '#ffffff'
         }
@@ -122,6 +147,10 @@ map.on('load', () => {
 // Mission planning API call
 // ------------------------------
 async function planMission() {
+    if (!mapReady) {
+        alert("Map is still loading...");
+        return;
+    }
     const payload = {
         width:  Number(document.getElementById("width").value),
         length: Number(document.getElementById("length").value),
@@ -137,8 +166,36 @@ async function planMission() {
     });
 
     const data = await res.json();
+
+    // data.seeds should be: [{lon: ..., lat: ...}, ...]
+    const missionGeoJSON = {
+        type: "FeatureCollection",
+        features: data.seeds.map(pt => ({
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: [pt.lon, pt.lat]
+            },
+            properties: {}
+        }))
+    };
+
+    // Plot it immediately
+    map.getSource("mission").setData(missionGeoJSON);
+
+    // Auto-zoom to mission area
+    const coords = data.seeds.map(pt => [pt.lon, pt.lat]);
+    if (coords.length > 0) {
+        const bounds = coords.reduce((b, coord) => b.extend(coord),
+            new mapboxgl.LngLatBounds(coords[0], coords[0])
+        );
+        map.fitBounds(bounds, { padding: 40 });
+    }
+
     alert(`Mission planned: inserted ${data.num_seeds} seeds.`);
 }
+
+
 </script>
 
 </body>
