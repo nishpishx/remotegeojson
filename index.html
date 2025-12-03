@@ -121,25 +121,6 @@ map.on('load', () => {
         }
     });
 
-    updateGeoJSON();
-    setInterval(updateGeoJSON, 1000);
-
-    async function updateGeoJSON() {
-        try {
-            const res = await fetch('https://seedplanterozzy.com/seeds.geojson');
-            const geojson = await res.json();
-
-            if (!geojson.features || geojson.features.length === 0) return;
-
-            map.getSource('seeds').setData(geojson);
-
-            const [lon, lat] = geojson.features[0].geometry.coordinates;
-            map.flyTo({ center: [lon, lat], speed: 0.5 });
-
-        } catch (err) {
-            console.error("Error fetching GeoJSON:", err);
-        }
-    }
 });
 
 
@@ -159,7 +140,7 @@ async function planMission() {
         lat:    Number(document.getElementById("lat").value)
     };
 
-    const res = await fetch("/plan_mission", {
+    const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
