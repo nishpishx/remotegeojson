@@ -59,6 +59,10 @@ body { margin: 0; padding: 0; }
     <input id="seeds"  placeholder="# Insertions" type="number">
     <input id="lon"    placeholder="Base Lon (DD)" type="number" step="any">
     <input id="lat"    placeholder="Base Lat (DD)" type="number" step="any">
+    <label style="display:block; margin:6px 0; font-family:sans-serif; font-size:14px;">
+        <input type="checkbox" id="planToggle" style="vertical-align:middle; margin-right:6px;">
+        Deployment Plan
+    </label>
     <button onclick="planMission()">Plan Mission</button>
 </div>
 
@@ -132,12 +136,15 @@ async function planMission() {
         alert("Map is still loading...");
         return;
     }
+
+    const isDeployment = document.getElementById("planToggle").checked;
     const payload = {
         width:  Number(document.getElementById("width").value),
         length: Number(document.getElementById("length").value),
         seeds:  Number(document.getElementById("seeds").value),
         lon:    Number(document.getElementById("lon").value),
-        lat:    Number(document.getElementById("lat").value)
+        lat:    Number(document.getElementById("lat").value),
+        deployment: isDeployment 
     };
 
     const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
