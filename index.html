@@ -139,7 +139,7 @@ async function handlePolygon(polyFeature) {
         plant_spacing:  Number(plant_spacing.value)
     };
 
-    const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
+    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
@@ -180,7 +180,7 @@ async function planMission() {
     };
 
     // Call backend just like handlePolygon
-    const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
+    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
