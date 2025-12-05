@@ -47,8 +47,6 @@ body { margin: 0; padding: 0; }
     background: #0056b3;
 }
 </style>
-    <meta charset="utf-8">
-    <title>Flask Server Test</title>
 </head>
 
 <body>
@@ -65,7 +63,7 @@ body { margin: 0; padding: 0; }
     <input id="lat" placeholder="Base Lat" type="number" step="any">
     <input id="row_spacing" placeholder="Row Spacing (m)" type="number" min="0.5" step="any">
     <input id="plant_spacing" placeholder="Plant Spacing (m)" type="number" min="0.1" step="any">
-    <button onclick="planMission()">Plan Mission</button>
+
     <button id="drawPolyBtn">Draw Polygon</button>
     <button onclick="clearPolygon()">Clear</button>
 
@@ -141,7 +139,7 @@ async function handlePolygon(polyFeature) {
         plant_spacing:  Number(plant_spacing.value)
     };
 
-    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
+    const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
@@ -157,31 +155,6 @@ async function handlePolygon(polyFeature) {
             geometry: {
                 type: "Point",
                 coordinates: [pt.lon, pt.lat]
-    <h2>Flask Server Test</h2>
-    <button onclick="checkServer()">Check /seeds.geojson</button>
-    <pre id="output"></pre>
-
-    <script>
-        async function checkServer() {
-            const output = document.getElementById("output");
-            output.textContent = "Checking...";
-
-            try {
-                const response = await fetch("http://3.23.72.215:5000/seeds.geojson", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ width: 10, length: 10, seeds: 5, lon: -122.55, lat: 48.33, row_spacing: 2, plant_spacing: 0.5 })
-                });
-
-                if (!response.ok) {
-                    output.textContent = `Server responded with status: ${response.status}`;
-                    return;
-                }
-
-                const data = await response.json();
-                output.textContent = JSON.stringify(data, null, 2);
-            } catch (err) {
-                output.textContent = "Error: " + err;
             }
         }))
     };
@@ -194,36 +167,6 @@ async function handlePolygon(polyFeature) {
         const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, {padding: 50});
     }
-}
-async function planMission() {
-    const payload = {
-        width:  Number(width.value),
-        length: Number(length.value),
-        seeds:  Number(seeds.value),
-        lon:    Number(lon.value),
-        lat:    Number(lat.value),
-        row_spacing: Number(row_spacing.value),
-        plant_spacing: Number(plant_spacing.value)
-    };
-
-    // Call backend just like handlePolygon
-    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    const missionGeoJSON = {
-        type: "FeatureCollection",
-        features: data.seeds.map(pt => ({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [pt.lon, pt.lat] }
-        }))
-    };
-
-    map.getSource("mission").setData(missionGeoJSON);
 }
 
 
@@ -247,7 +190,6 @@ function clearPolygon() {
 }
 </script>
 
-        }
-    </script>
 </body>
 </html>
+
