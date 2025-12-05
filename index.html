@@ -1,224 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Mission Planner</title>
-<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.js"></script>
-
-<!-- Mapbox Draw -->
-<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css" />
-<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js"></script>
-
-<style>
-body { margin: 0; padding: 0; }
-#map { position: absolute; top: 0; bottom: 0; width: 100%; }
-
-#controls {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.3);
-    z-index: 99999;
-    width: 250px;
-    font-family: sans-serif;
-}
-#controls input {
-    width: 90%;
-    margin-bottom: 6px;
-    padding: 6px;
-}
-#controls button {
-    width: 100%;
-    padding: 8px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 6px;
-}
-#controls button:hover {
-    background: #0056b3;
-}
-</style>
+    <meta charset="utf-8">
+    <title>Flask Server Test</title>
 </head>
-
 <body>
-<div id="map"></div>
+    <h2>Flask Server Test</h2>
+    <button onclick="checkServer()">Check /seeds.geojson</button>
+    <pre id="output"></pre>
 
-<!-- Mission Planner Panel -->
-<div id="controls">
-    <h4>Mission Planner</h4>
+    <script>
+        async function checkServer() {
+            const output = document.getElementById("output");
+            output.textContent = "Checking...";
 
-    <input id="width" placeholder="Width (m)" type="number">
-    <input id="length" placeholder="Length (m)" type="number">
-    <input id="seeds" placeholder="# Insertions" type="number">
-    <input id="lon" placeholder="Base Lon" type="number" step="any">
-    <input id="lat" placeholder="Base Lat" type="number" step="any">
-    <input id="row_spacing" placeholder="Row Spacing (m)" type="number" min="0.5" step="any">
-    <input id="plant_spacing" placeholder="Plant Spacing (m)" type="number" min="0.1" step="any">
-    <button onclick="planMission()">Plan Mission</button>
-    <button id="drawPolyBtn">Draw Polygon</button>
-    <button onclick="clearPolygon()">Clear</button>
+            try {
+                const response = await fetch("http://3.23.72.215:5000/seeds.geojson", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ width: 10, length: 10, seeds: 5, lon: -122.55, lat: 48.33, row_spacing: 2, plant_spacing: 0.5 })
+                });
 
-    <label>
-      <input type="checkbox" id="deploy_checkbox"> Deploy
-    </label>
-</div>
+                if (!response.ok) {
+                    output.textContent = `Server responded with status: ${response.status}`;
+                    return;
+                }
 
-<script>
-let mapReady = false;
-
-// Init map
-mapboxgl.accessToken = 'pk.eyJ1IjoibmlzaGF3YWx2ZWthciIsImEiOiJjbWk2ZDIzcHAwOHpjMm5xMzBoZnJqczFhIn0.yMVQVXT_07pyiff_ufya8Q';
-const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/satellite-streets-v9',
-    zoom: 2,
-    center: [0,0]
-});
-
-// --------------------------
-// Mapbox Draw
-// --------------------------
-const Draw = new MapboxDraw({
-    displayControlsDefault: false,
-    controls: { polygon: true, trash: true }
-});
-map.addControl(Draw);
-
-// GeoJSON mission layer
-map.on('load', () => {
-    mapReady = true;
-
-    map.addSource('mission', {
-        type: 'geojson',
-        data: {
-            type: 'FeatureCollection',
-            features: []
-        }
-    });
-
-    map.addLayer({
-        id: 'mission-layer',
-        type: 'circle',
-        source: 'mission',
-        paint: {
-            'circle-radius': 5,
-            'circle-color': '#ff0000',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#fff'
-        }
-    });
-});
-
-
-// --------------------------
-// When a polygon is drawn → generate seeds immediately
-// --------------------------
-map.on('draw.create', e => handlePolygon(e.features[0]));
-map.on('draw.update', e => handlePolygon(e.features[0]));
-
-async function handlePolygon(polyFeature) {
-    const poly = polyFeature.geometry;
-
-    const payload = {
-        polygon: poly,
-        width:  Number(width.value),
-        length: Number(length.value),
-        seeds:  Number(seeds.value),
-        lon:    Number(lon.value),
-        lat:    Number(lat.value),
-        row_spacing:    Number(row_spacing.value),
-        plant_spacing:  Number(plant_spacing.value)
-    };
-
-    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    // Plot seeds immediately
-    const missionGeoJSON = {
-        type: "FeatureCollection",
-        features: data.seeds.map(pt => ({
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: [pt.lon, pt.lat]
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                output.textContent = "Error: " + err;
             }
-        }))
-    };
-
-    map.getSource("mission").setData(missionGeoJSON);
-
-    // Zoom to area
-    const coords = data.seeds.map(s => [s.lon, s.lat]);
-    if (coords.length > 0) {
-        const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
-        map.fitBounds(bounds, {padding: 50});
-    }
-}
-async function planMission() {
-    const payload = {
-        width:  Number(width.value),
-        length: Number(length.value),
-        seeds:  Number(seeds.value),
-        lon:    Number(lon.value),
-        lat:    Number(lat.value),
-        row_spacing: Number(row_spacing.value),
-        plant_spacing: Number(plant_spacing.value)
-    };
-
-    // Call backend just like handlePolygon
-    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    const missionGeoJSON = {
-        type: "FeatureCollection",
-        features: data.seeds.map(pt => ({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [pt.lon, pt.lat] }
-        }))
-    };
-
-    map.getSource("mission").setData(missionGeoJSON);
-}
-
-
-// --------------------------
-// Manual draw polygon button
-// --------------------------
-document.getElementById("drawPolyBtn").onclick = () => {
-    Draw.changeMode("draw_polygon");
-};
-
-
-// --------------------------
-// Clear polygon + clear seeds
-// --------------------------
-function clearPolygon() {
-    Draw.deleteAll();
-    map.getSource("mission").setData({
-        type: "FeatureCollection",
-        features: []
-    });
-}
-</script>
-
+        }
+    </script>
 </body>
 </html>
