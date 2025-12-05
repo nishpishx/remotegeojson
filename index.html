@@ -15,7 +15,7 @@
             output.textContent = "Checking...";
 
             try {
-                const response = await fetch("http://3.23.72.215:5000/seeds.geojson", {
+                const response = await fetch("https://3.23.72.215:5000/seeds.geojson", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ width: 10, length: 10, seeds: 5, lon: -122.55, lat: 48.33, row_spacing: 2, plant_spacing: 0.5 })
