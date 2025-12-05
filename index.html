@@ -63,7 +63,7 @@ body { margin: 0; padding: 0; }
     <input id="lat" placeholder="Base Lat" type="number" step="any">
     <input id="row_spacing" placeholder="Row Spacing (m)" type="number" min="0.5" step="any">
     <input id="plant_spacing" placeholder="Plant Spacing (m)" type="number" min="0.1" step="any">
-
+    <button onclick="planMission()">Plan Mission</button>
     <button id="drawPolyBtn">Draw Polygon</button>
     <button onclick="clearPolygon()">Clear</button>
 
@@ -167,6 +167,36 @@ async function handlePolygon(polyFeature) {
         const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, {padding: 50});
     }
+}
+async function planMission() {
+    const payload = {
+        width:  Number(width.value),
+        length: Number(length.value),
+        seeds:  Number(seeds.value),
+        lon:    Number(lon.value),
+        lat:    Number(lat.value),
+        row_spacing: Number(row_spacing.value),
+        plant_spacing: Number(plant_spacing.value)
+    };
+
+    // Call backend just like handlePolygon
+    const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    const missionGeoJSON = {
+        type: "FeatureCollection",
+        features: data.seeds.map(pt => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [pt.lon, pt.lat] }
+        }))
+    };
+
+    map.getSource("mission").setData(missionGeoJSON);
 }
 
 
