@@ -147,7 +147,7 @@ async function planMission() {
         deployment: isDeployment 
     };
 
-    const res = await fetch("http://3.23.72.215:5000/seeds.geojson/seeds.geojson", {
+    const res = await fetch("http://3.23.72.215:5000/seeds.geojson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
