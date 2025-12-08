@@ -2,36 +2,36 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Live Seed Map + Mission Planner</title>
+<title>Mission Planner</title>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.js"></script>
+
+<!-- Mapbox Draw -->
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css" />
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js"></script>
 
 <style>
 body { margin: 0; padding: 0; }
 #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-.mapboxgl-canvas {
-    position: relative !important;
-    z-index: 1 !important;
-}
 
-/* Mission planning UI panel */
 #controls {
     position: absolute;
     top: 10px;
     left: 10px;
     background: white;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 20px;
+    border-radius: 12px;
     box-shadow: 0 0 8px rgba(0,0,0,0.3);
     z-index: 99999;
-    width: 220px;
+    width: 250px;
     font-family: sans-serif;
 }
 #controls input {
-    width: 85%;
-    margin-bottom: 6px;
-    padding: 6px;
+    width: 90%;
+    margin-bottom: 12px;
+    padding: 10px;
 }
 #controls button {
     width: 100%;
@@ -41,6 +41,7 @@ body { margin: 0; padding: 0; }
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    margin-top: 6px;
 }
 #controls button:hover {
     background: #0056b3;
@@ -53,23 +54,28 @@ body { margin: 0; padding: 0; }
 
 <!-- Mission Planner Panel -->
 <div id="controls">
-    <h4>Plan Mission</h4>
-    <input id="width"  placeholder="Width (m)" type="number">
+    <h4>Mission Planner</h4>
+
+    <input id="width" placeholder="Width (m)" type="number">
     <input id="length" placeholder="Length (m)" type="number">
-    <input id="seeds"  placeholder="# Insertions" type="number">
-    <input id="lon"    placeholder="Base Lon (DD)" type="number" step="any">
-    <input id="lat"    placeholder="Base Lat (DD)" type="number" step="any">
-    <label style="display:block; margin:6px 0; font-family:sans-serif; font-size:14px;">
-        <input type="checkbox" id="planToggle" style="vertical-align:middle; margin-right:6px;">
-        Deployment Plan
+    <input id="seeds" placeholder="# Insertions" type="number">
+    <input id="lon" placeholder="Base Lon" type="number" step="any">
+    <input id="lat" placeholder="Base Lat" type="number" step="any">
+    <input id="row_spacing" placeholder="Row Spacing (m)" type="number" min="0.5" step="any">
+    <input id="plant_spacing" placeholder="Plant Spacing (m)" type="number" min="0.1" step="any">
+
+    <button id="drawPolyBtn">Draw Polygon</button>
+    <button onclick="clearPolygon()">Clear</button>
+
+    <label>
+      <input type="checkbox" id="deploy_checkbox"> Deploy
     </label>
-    <button onclick="planMission()">Plan Mission</button>
 </div>
 
 <script>
 let mapReady = false;
 
-// Initialize map
+// Init map
 mapboxgl.accessToken = 'pk.eyJ1IjoibmlzaGF3YWx2ZWthciIsImEiOiJjbWk2ZDIzcHAwOHpjMm5xMzBoZnJqczFhIn0.yMVQVXT_07pyiff_ufya8Q';
 const map = new mapboxgl.Map({
     container: 'map',
@@ -78,29 +84,18 @@ const map = new mapboxgl.Map({
     center: [0,0]
 });
 
+// --------------------------
+// Mapbox Draw
+// --------------------------
+const Draw = new MapboxDraw({
+    displayControlsDefault: false,
+    controls: { polygon: true, trash: true }
+});
+map.addControl(Draw);
+
+// GeoJSON mission layer
 map.on('load', () => {
     mapReady = true;
-    // Seed source
-    map.addSource('seeds', {
-        type: 'geojson',
-        data: {
-            type: 'FeatureCollection',
-            features: []
-        }
-    });
-
-    // Seed layer
-    map.addLayer({
-        id: 'seeds-layer',
-        type: 'circle',
-        source: 'seeds',
-        paint: {
-            'circle-radius': 6,
-            'circle-color': '#28a745',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#ffffff'
-        }
-    });
 
     map.addSource('mission', {
         type: 'geojson',
@@ -110,52 +105,49 @@ map.on('load', () => {
         }
     });
 
-// ------------------------------
-// Mission layer (shows planned seeds in red)
-// ------------------------------
     map.addLayer({
         id: 'mission-layer',
         type: 'circle',
         source: 'mission',
         paint: {
-            'circle-radius': 6,
+            'circle-radius': 5,
             'circle-color': '#ff0000',
             'circle-stroke-width': 1,
-            'circle-stroke-color': '#ffffff'
+            'circle-stroke-color': '#fff'
         }
     });
-
 });
 
 
-// ------------------------------
-// Mission planning API call
-// ------------------------------
-async function planMission() {
-    if (!mapReady) {
-        alert("Map is still loading...");
-        return;
-    }
+// --------------------------
+// When a polygon is drawn → generate seeds immediately
+// --------------------------
+map.on('draw.create', e => handlePolygon(e.features[0]));
+map.on('draw.update', e => handlePolygon(e.features[0]));
 
-    const isDeployment = document.getElementById("planToggle").checked;
+async function handlePolygon(polyFeature) {
+    const poly = polyFeature.geometry;
+
     const payload = {
-        width:  Number(document.getElementById("width").value),
-        length: Number(document.getElementById("length").value),
-        seeds:  Number(document.getElementById("seeds").value),
-        lon:    Number(document.getElementById("lon").value),
-        lat:    Number(document.getElementById("lat").value),
-        deployment: isDeployment 
+        polygon: poly,
+        width:  Number(width.value),
+        length: Number(length.value),
+        seeds:  Number(seeds.value),
+        lon:    Number(lon.value),
+        lat:    Number(lat.value),
+        row_spacing:    Number(row_spacing.value),
+        plant_spacing:  Number(plant_spacing.value)
     };
 
     const res = await fetch("https://seedplanterozzy.com/seeds.geojson", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
     });
 
     const data = await res.json();
 
-    // data.seeds should be: [{lon: ..., lat: ...}, ...]
+    // Plot seeds immediately
     const missionGeoJSON = {
         type: "FeatureCollection",
         features: data.seeds.map(pt => ({
@@ -163,29 +155,40 @@ async function planMission() {
             geometry: {
                 type: "Point",
                 coordinates: [pt.lon, pt.lat]
-            },
-            properties: {}
+            }
         }))
     };
 
-    // Plot it immediately
     map.getSource("mission").setData(missionGeoJSON);
 
-    // Auto-zoom to mission area
-    const coords = data.seeds.map(pt => [pt.lon, pt.lat]);
+    // Zoom to area
+    const coords = data.seeds.map(s => [s.lon, s.lat]);
     if (coords.length > 0) {
-        const bounds = coords.reduce((b, coord) => b.extend(coord),
-            new mapboxgl.LngLatBounds(coords[0], coords[0])
-        );
-        map.fitBounds(bounds, { padding: 40 });
+        const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
+        map.fitBounds(bounds, {padding: 50});
     }
-
-    alert(`Mission planned: inserted ${data.num_seeds} seeds.`);
 }
 
 
+// --------------------------
+// Manual draw polygon button
+// --------------------------
+document.getElementById("drawPolyBtn").onclick = () => {
+    Draw.changeMode("draw_polygon");
+};
+
+
+// --------------------------
+// Clear polygon + clear seeds
+// --------------------------
+function clearPolygon() {
+    Draw.deleteAll();
+    map.getSource("mission").setData({
+        type: "FeatureCollection",
+        features: []
+    });
+}
 </script>
 
 </body>
 </html>
-
