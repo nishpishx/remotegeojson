@@ -146,6 +146,9 @@ async function handlePolygon(polyFeature) {
     });
 
     const geojsonData = await res.json();
+    console.log("Received GeoJSON:", geojsonData);
+    console.log("Type:", geojsonData.type);
+    console.log("First 5 coordinates:", geojsonData.coordinates?.slice(0, 5));
 
     // Convert to FeatureCollection if it's just a geometry
     let featureCollection;
