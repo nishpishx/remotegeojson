@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -105,22 +106,21 @@ map.on('load', () => {
         }
     });
 
+    // Changed from 'circle' to 'line' to display the path
     map.addLayer({
         id: 'mission-layer',
-        type: 'circle',
+        type: 'line',
         source: 'mission',
         paint: {
-            'circle-radius': 5,
-            'circle-color': '#ff0000',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#fff'
+            'line-color': '#ff0000',
+            'line-width': 3
         }
     });
 });
 
 
 // --------------------------
-// When a polygon is drawn → generate seeds immediately
+// When a polygon is drawn → generate path immediately
 // --------------------------
 map.on('draw.create', e => handlePolygon(e.features[0]));
 map.on('draw.update', e => handlePolygon(e.features[0]));
@@ -145,24 +145,32 @@ async function handlePolygon(polyFeature) {
         body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    const geojsonData = await res.json();
 
-    // Plot seeds immediately
-    const missionGeoJSON = {
-        type: "FeatureCollection",
-        features: data.seeds.map(pt => ({
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: [pt.lon, pt.lat]
-            }
-        }))
-    };
+    // Convert to FeatureCollection if it's just a geometry
+    let featureCollection;
+    if (geojsonData.type === 'LineString') {
+        featureCollection = {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: geojsonData
+            }]
+        };
+    } else if (geojsonData.type === 'Feature') {
+        featureCollection = {
+            type: 'FeatureCollection',
+            features: [geojsonData]
+        };
+    } else {
+        featureCollection = geojsonData;
+    }
 
-    map.getSource("mission").setData(missionGeoJSON);
+    // Display the path
+    map.getSource("mission").setData(featureCollection);
 
-    // Zoom to area
-    const coords = data.seeds.map(s => [s.lon, s.lat]);
+    // Zoom to the path
+    const coords = geojsonData.coordinates || geojsonData.geometry?.coordinates || [];
     if (coords.length > 0) {
         const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, {padding: 50});
@@ -179,7 +187,7 @@ document.getElementById("drawPolyBtn").onclick = () => {
 
 
 // --------------------------
-// Clear polygon + clear seeds
+// Clear polygon + clear path
 // --------------------------
 function clearPolygon() {
     Draw.deleteAll();
