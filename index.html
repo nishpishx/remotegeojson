@@ -187,23 +187,23 @@ async function handlePolygon(polyFeature) {
 
     // Convert to FeatureCollection if it's just a geometry
     let featureCollection;
-    if (geojsonData.type === 'LineString') {
+    if (geojsonData.path.type === 'LineString') {
         featureCollection = {
             type: 'FeatureCollection',
             features: [{
                 type: 'Feature',
-                geometry: geojsonData
+                geometry: geojsonData.path
             }]
         };
-    } else if (geojsonData.type === 'Feature') {
+    } else if (geojsonData.path.type === 'Feature') {
         featureCollection = {
             type: 'FeatureCollection',
-            features: [geojsonData]
+            features: [geojsonData.path]
         };
     } else {
-        featureCollection = geojsonData;
+        featureCollection = geojsonData.path;
     }
-
+    
     // Display the path
     map.getSource("mission").setData(featureCollection);
     
@@ -241,8 +241,9 @@ async function handlePolygon(polyFeature) {
     }
 
     map.getSource("markers").setData(markers);
+   
     // Zoom to the path
-    const coords = geojsonData.coordinates || geojsonData.geometry?.coordinates || [];
+    const coords = geojsonData.path.coordinates || [];
     if (coords.length > 0) {
         const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, {padding: 50});
