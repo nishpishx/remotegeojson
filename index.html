@@ -212,12 +212,12 @@ async function handlePolygon(polyFeature) {
         features: []
     };
 
-    if (data.start) {
+    if (geojsonData.start) {
         markers.features.push({
             type: 'Feature',
             geometry: {
                 type: 'Point',
-                coordinates: [data.start.lon, data.start.lat]
+                coordinates: [geojsonData.start.lon, geojsonData.start.lat]
             },
             properties: {
                 label: 'START',
@@ -226,12 +226,12 @@ async function handlePolygon(polyFeature) {
         });
     }
 
-    if (data.end) {
+    if (geojsonData.end) {
         markers.features.push({
             type: 'Feature',
             geometry: {
                 type: 'Point',
-                coordinates: [data.end.lon, data.end.lat]
+                coordinates: [geojsonData.end.lon, geojsonData.end.lat]
             },
             properties: {
                 label: 'END',
