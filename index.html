@@ -59,7 +59,7 @@ body { margin: 0; padding: 0; }
 
     <input id="width" placeholder="Width (m)" type="number">
     <input id="length" placeholder="Length (m)" type="number">
-    <input id="seeds" placeholder="# Insertions" type="number">
+    <input id="angle" placeholder="angle" type="number">
     <input id="lon" placeholder="Base Lon" type="number" step="any">
     <input id="lat" placeholder="Base Lat" type="number" step="any">
     <input id="row_spacing" placeholder="Row Spacing (m)" type="number" min="0.5" step="any">
@@ -132,7 +132,7 @@ async function handlePolygon(polyFeature) {
         polygon: poly,
         width:  Number(width.value),
         length: Number(length.value),
-        seeds:  Number(seeds.value),
+        angle:  Number(angle.value),
         lon:    Number(lon.value),
         lat:    Number(lat.value),
         row_spacing:    Number(row_spacing.value),
