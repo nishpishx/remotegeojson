@@ -117,7 +117,43 @@ map.on('load', () => {
         }
     });
 });
+    map.addSource('markers', {
+        type: 'geojson',
+        data: {
+            type: 'FeatureCollection',
+            features: []
+        }
+    });
 
+    map.addLayer({
+        id: 'markers-layer',
+        type: 'circle',
+        source: 'markers',
+        paint: {
+            'circle-radius': 8,
+            'circle-color': ['get', 'color'],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+        }
+    });
+
+    // Labels for start/end
+    map.addLayer({
+        id: 'markers-labels',
+        type: 'symbol',
+        source: 'markers',
+        layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 12,
+            'text-offset': [0, -1.5]
+        },
+        paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 2
+        }
+    });
+});
 
 // --------------------------
 // When a polygon is drawn → generate path immediately
@@ -171,7 +207,41 @@ async function handlePolygon(polyFeature) {
 
     // Display the path
     map.getSource("mission").setData(featureCollection);
+    
+    const markers = {
+        type: 'FeatureCollection',
+        features: []
+    };
 
+    if (data.start) {
+        markers.features.push({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [data.start.lon, data.start.lat]
+            },
+            properties: {
+                label: 'START',
+                color: '#00ff00'  // Green
+            }
+        });
+    }
+
+    if (data.end) {
+        markers.features.push({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [data.end.lon, data.end.lat]
+            },
+            properties: {
+                label: 'END',
+                color: '#ff0000'  // Red
+            }
+        });
+    }
+
+    map.getSource("markers").setData(markers);
     // Zoom to the path
     const coords = geojsonData.coordinates || geojsonData.geometry?.coordinates || [];
     if (coords.length > 0) {
@@ -195,6 +265,10 @@ document.getElementById("drawPolyBtn").onclick = () => {
 function clearPolygon() {
     Draw.deleteAll();
     map.getSource("mission").setData({
+        type: "FeatureCollection",
+        features: []
+    });
+    map.getSource("markers").setData({
         type: "FeatureCollection",
         features: []
     });
