@@ -12,6 +12,8 @@
 <!-- Mapbox Draw -->
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css" />
 <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js"></script>
+    
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
 <style>
 body { margin: 0; padding: 0; }
@@ -153,6 +155,31 @@ map.on('load', () => {
         }
     });
 });
+map.on('load', () => {
+    map.addSource('_side_labels', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+    });
+
+    map.addLayer({
+        id: '_side_labels',
+        source: '_side_labels',
+        type: 'symbol',
+        layout: {
+            'symbol-placement': 'line',  // label follows the polygon edge
+            'symbol-spacing': 50,        // distance between repeated labels
+            'text-field': '{label}',
+            'text-size': 16,
+            'text-rotation-alignment': 'map',
+            'text-pitch-alignment': 'map'
+        },
+        paint: {
+            'text-color': 'hsl(234, 100%, 32%)',
+            'text-halo-color': 'hsl(0, 0%, 100%)',
+            'text-halo-width': 2
+        }
+    });
+});
 
 // --------------------------
 // When a polygon is drawn → generate path immediately
@@ -250,6 +277,32 @@ async function handlePolygon(polyFeature) {
     }
 }
 
+function updateSideLabels(polyFeature) {
+    if (!polyFeature || turf.getType(polyFeature) !== 'Polygon') return;
+
+    const coords = polyFeature.geometry.coordinates[0]; // outer ring
+    const labelFeatures = [];
+
+    for (let i = 0; i < coords.length - 1; i++) {
+        const start = coords[i];
+        const end = coords[i + 1];
+        const line = turf.lineString([start, end]);
+        const lengthMeters = turf.length(line, { units: 'meters' });
+
+        labelFeatures.push(turf.feature(line.geometry, {
+            label: lengthMeters.toFixed(2) + ' m'
+        }));
+    }
+
+    map.getSource('_side_labels').setData({
+        type: 'FeatureCollection',
+        features: labelFeatures
+    });
+}
+
+// Hook it up to Draw events
+map.on('draw.create', e => updateSideLabels(e.features[0]));
+map.on('draw.update', e => updateSideLabels(e.features[0]));
 
 // --------------------------
 // Manual draw polygon button
