@@ -323,12 +323,23 @@ document.getElementById("drawPolyBtn").onclick = () => {
 // Clear polygon + clear path
 // --------------------------
 function clearPolygon() {
+    // Remove all drawn polygons
     Draw.deleteAll();
+
+    // Clear the path layer
     map.getSource("mission").setData({
         type: "FeatureCollection",
         features: []
     });
+
+    // Clear markers (start/end points)
     map.getSource("markers").setData({
+        type: "FeatureCollection",
+        features: []
+    });
+
+    // Clear side length labels
+    map.getSource("_side_labels").setData({
         type: "FeatureCollection",
         features: []
     });
