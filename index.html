@@ -155,6 +155,8 @@ map.on('load', () => {
         }
     });
 });
+
+
 // Add a dedicated source for polygon side length labels
 map.on('load', () => {
     map.addSource('_side_labels', {
@@ -181,7 +183,31 @@ map.on('load', () => {
         }
     });
 });
+map.on('draw.render', () => {
+    const allFeatures = Draw.getAll().features;
 
+    if (!allFeatures.length) {
+        map.getSource('_side_labels').setData({ type: 'FeatureCollection', features: [] });
+        return;
+    }
+
+    const labelFeatures = [];
+
+    allFeatures.forEach(feature => {
+        if (turf.getType(feature) !== 'Polygon') return;
+
+        const coords = feature.geometry.coordinates[0];
+        for (let i = 0; i < coords.length - 1; i++) {
+            const line = turf.lineString([coords[i], coords[i+1]]);
+            const lengthMeters = turf.length(line, { units: 'meters' });
+            const midpoint = turf.along(line, lengthMeters / 2, { units: 'meters' });
+
+            labelFeatures.push(turf.point(midpoint.geometry.coordinates, { label: lengthMeters.toFixed(2) + ' m' }));
+        }
+    });
+
+    map.getSource('_side_labels').setData({ type: 'FeatureCollection', features: labelFeatures });
+});
 
 // --------------------------
 // When a polygon is drawn → generate path immediately
